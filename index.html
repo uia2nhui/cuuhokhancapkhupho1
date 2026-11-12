@@ -98,22 +98,56 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPDyWV8utFhJlvSF0bgepiGU0yWuFqcpi47UJ4hgBYgXt4dY5LKp9qG38QVKNd8S2L/exec"; // Thay link Web App của bạn
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzX1HQ9F3LDlC2so2sIckyiebOaBcFBq3A4CIZzlhuIMn5ZcHNB4So-iLuZqdHraevJ/exec"; // Thay link Web App của bạn
         const HOTLINE_SMS = "0777780582"; // Số tổng đài trực ban
 
         function getLocation() {
-            if (navigator.geolocation) {
-                document.getElementById('gps').value = "Đang định vị...";
-                navigator.geolocation.getCurrentPosition(pos => {
-                    document.getElementById('gps').value = pos.coords.latitude.toFixed(6) + ", " + pos.coords.longitude.toFixed(6);
-                }, () => { alert("Không lấy được GPS!"); document.getElementById('gps').value = ""; }, { enableHighAccuracy: true });
-            } else { alert("Trình duyệt không hỗ trợ GPS."); }
+            if (!navigator.geolocation) {
+                alert("❌ Trình duyệt của bạn không hỗ trợ định vị GPS.");
+                return;
+            }
+
+            const gpsInput = document.getElementById('gps');
+            gpsInput.value = "Đang kết nối vệ tinh GPS...";
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
+                    gpsInput.value = `${lat}, ${lon}`;
+                },
+                (error) => {
+                    gpsInput.value = "";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            alert("⚠️ Bạn đã từ chối quyền truy cập vị trí!\n\nVui lòng bấm vào biểu tượng ổ khóa/cài đặt ở thanh địa chỉ trình duyệt để Bật lại quyền Vị trí (Location) rồi thử lại.");
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            alert("⚠️ Không thể xác định vị trí. Vui lòng kiểm tra lại kết nối GPS hoặc bật định vị trên thiết bị.");
+                            break;
+                        case error.TIMEOUT:
+                            alert("⚠️ Hết thời gian chờ lấy tọa độ GPS. Hãy di chuyển ra khu vực thoáng hơn và thử lại.");
+                            break;
+                        default:
+                            alert("⚠️ Lỗi không xác định khi lấy GPS.");
+                            break;
+                    }
+                },
+                options
+            );
         }
 
         function submitPublicForm(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.disabled = true; btn.innerText = "Đang gửi...";
+            btn.disabled = true; 
+            btn.innerText = "Đang gửi...";
 
             const payload = {
                 formType: 'rescue',
@@ -137,8 +171,14 @@
             .then(() => {
                 alert("✅ Gửi yêu cầu thành công!");
                 document.getElementById('publicForm').reset();
-                btn.disabled = false; btn.innerText = "🌐 GỬI YÊU CẦU CỨU HỘ (CÓ MẠNG)";
-            }).catch(err => { alert("Lỗi: " + err); btn.disabled = false; btn.innerText = "🌐 GỬI YÊU CẦU CỨU HỘ (CÓ MẠNG)"; });
+                btn.disabled = false; 
+                btn.innerText = "🌐 GỬI YÊU CẦU CỨU HỘ (CÓ MẠNG)";
+            })
+            .catch(err => { 
+                alert("Lỗi: " + err); 
+                btn.disabled = false; 
+                btn.innerText = "🌐 GỬI YÊU CẦU CỨU HỘ (CÓ MẠNG)"; 
+            });
         }
 
         function sendSMS() {
@@ -161,7 +201,15 @@
                 return; 
             }
 
-            // Gom nhóm và viết tắt gọn gàng để không bị tràn dung lượng SMS
-            const smsContent = `CUUHO [${priority}] ` + `Ten: ${name}, SDT: ${phone}, DC:${address}, GPS: ${gps}. ` + `SL: ${totalPeople}nguoi (Gia:${elders}, TreEm:${children}, Bau:${pregnant}, Lon:${adults}). ` +
+            // Gom nhóm và viết tắt gọn gàng để truyền tải đầy đủ thông tin qua SMS
+            const smsContent = `CUUHO [${priority}] ` +
+                `Ten: ${name}, SDT: ${phone}, DC: ${address}, GPS: ${gps}. ` +
+                `SL: ${totalPeople}nguoi (Gia:${elders}, TreEm:${children}, Bau:${pregnant}, Lon:${adults}). ` +
                 `Nha: ${houseType}. YeuCau: ${need}. ` +
-                `Note: ${note}`;  window.location.href = `sms:${HOTLINE_SMS}?
+                `Note: ${note}`;
+
+            window.location.href = `sms:${HOTLINE_SMS}?body=${encodeURIComponent(smsContent)}`;
+        }
+    </script>
+</body>
+</html>
